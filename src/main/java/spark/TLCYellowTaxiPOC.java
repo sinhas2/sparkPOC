@@ -7,9 +7,12 @@ import java.util.Iterator;
 import java.util.List;
 
 import org.apache.spark.SparkConf;
+import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.api.java.function.FlatMapFunction;
+
+import scala.Tuple2;
 
 public class TLCYellowTaxiPOC {
 	@SuppressWarnings("serial")
@@ -99,8 +102,24 @@ public class TLCYellowTaxiPOC {
 		 *         and find the count for each group. Sort the 
 		 *         payment types in ascending order of their count.
 		 */
-        
-        
+        System.out.println("Operation 3 [STARTS] : " + new Timestamp(System.currentTimeMillis()));
+        JavaRDD<String> filterRDD = lines.filter(line -> {
+			if (!line.equalsIgnoreCase(header) || !line.isEmpty()) {
+	            return true;
+			} else {
+				return false;
+			}
+        });
+        JavaPairRDD<String, Integer> pairRdd = filterRDD.mapToPair( line -> {
+        			String[] list = line.split(",");
+        			if (list.length >=9 )
+        				return new Tuple2<String, Integer>(list[9],1);
+        			else 
+        				return new Tuple2<String, Integer>("",1);
+        });
+        JavaPairRDD<String, Integer> countRdd = pairRdd.reduceByKey((x,y) -> x+y);
+        countRdd.foreach(x -> System.out.println("Payment type: " + x._1 + ":" + x._2));
+        System.out.println("Operation 3 [ENDS] : " + new Timestamp(System.currentTimeMillis()));
 		} catch (Exception ex) {
 			ex.printStackTrace();
 			System.out.println(ex.getMessage());
